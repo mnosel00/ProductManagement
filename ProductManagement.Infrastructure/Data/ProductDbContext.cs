@@ -13,9 +13,13 @@ namespace ProductManagement.Infrastructure.Data
         public ProductDbContext(DbContextOptions<ProductDbContext> options) : base(options) { }
 
         public DbSet<Product> Products { get; set; }
+        public DbSet<ProductHistory> ProductHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<ProductHistory>()
+                .HasKey(ph => ph.Id);
+
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
                 .IsUnique();
