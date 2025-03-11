@@ -37,11 +37,9 @@ namespace ProductManagement.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] Product product)
         {
-            if (id != product.Id)
-                return BadRequest();
+            product.Id = id;
             await _productService.UpdateProductAsync(product);
             return NoContent();
-
         }
 
         [HttpDelete("{id}")]
