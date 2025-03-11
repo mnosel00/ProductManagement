@@ -24,6 +24,12 @@ namespace ProductManagement.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task AddHistoryAsync(ProductHistory history)
+        {
+            _context.ProductHistories.Add(history);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task DeleteAsync(int id)
         {
             var product = await _context.Products.FindAsync(id);

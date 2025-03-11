@@ -14,5 +14,6 @@ namespace ProductManagement.Domain.Interfaces
         Task AddAsync(Product product);
         Task UpdateAsync(Product product);
         Task DeleteAsync(int id);
+        Task AddHistoryAsync(ProductHistory history);
     }
 }
