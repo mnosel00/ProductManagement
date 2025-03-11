@@ -13,18 +13,26 @@ namespace ProductManagement.Application.Services
     {
         private readonly IProductRepository _repository;
         private readonly IProductHistoryService _productHistoryService;
+        private readonly IProductBadWordsService _productBadWordsService;
 
-        public ProductService(IProductRepository repository, IProductHistoryService productHistoryService)
+        public ProductService(IProductRepository repository, IProductHistoryService productHistoryService, IProductBadWordsService productBadWordsService)
         {
             _repository = repository;
             _productHistoryService = productHistoryService;
+            _productBadWordsService = productBadWordsService;
         }
 
         public async Task<IEnumerable<Product>> GetAllProductsAsync() => await _repository.GetAllAsync();
 
         public async Task<Product?> GetProductByIdAsync(int id) => await _repository.GetByIdAsync(id);
 
-        public async Task AddProductAsync(Product product) => await _repository.AddAsync(product);
+        public async Task AddProductAsync(Product product)
+        {
+            if (await _productBadWordsService.ContainsBadWordsAsync(product.Name))
+                throw new Exception("Product name contains bad words");
+            
+            await _repository.AddAsync(product);
+        }
 
         public async Task UpdateProductAsync(Product product)
         {

@@ -18,9 +18,11 @@ builder.Services.AddDbContext<ProductDbContext>(options =>
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductHistoryRepository, ProductHistoryRepository>();
+builder.Services.AddScoped<IBadWordsRepository, BadWordRepository>();
 
 builder.Services.AddScoped<IProductHistoryService, ProductHistoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProductBadWordsService, ProductBadWordsService>();
 
 
 var app = builder.Build();

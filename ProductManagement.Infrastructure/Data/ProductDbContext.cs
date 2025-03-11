@@ -14,6 +14,7 @@ namespace ProductManagement.Infrastructure.Data
 
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductHistory> ProductHistories { get; set; }
+        public DbSet<BadWord> BadWords { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
