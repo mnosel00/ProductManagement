@@ -18,6 +18,10 @@ namespace ProductManagement.Infrastructure.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Id)
+                .ValueGeneratedOnAdd();
+
             modelBuilder.Entity<ProductHistory>()
                 .HasKey(ph => ph.Id);
 

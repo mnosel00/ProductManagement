@@ -1,18 +1,23 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using NUnit.Framework;
+using FluentAssertions;
 using ProductManagement.API.Controllers;
 using ProductManagement.Application.Interfaces;
 using ProductManagement.Application.Services;
 using ProductManagement.Domain.Entities;
 using ProductManagement.Domain.Interfaces;
 using ProductManagement.Infrastructure.Data;
-using NUnit.Framework;
-using FluentAssertions;
+using ProductManagement.Infrastructure.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ProductManagement.Test
 {
-    public class Tests : IDisposable
+    public class UnitTest1 : IDisposable
     {
         private ProductsController _controller;
         private ProductDbContext _context;
@@ -21,58 +26,62 @@ namespace ProductManagement.Test
         [SetUp]
         public void Setup()
         {
-            var options = new DbContextOptionsBuilder<ProductDbContext>()
-                .UseInMemoryDatabase(databaseName: "ProductDbTest")
-                .Options;
+            _context = CreateInMemoryDbContext();
+            var repo = new ProductRepository(_context);
+            var historyMock = Mock.Of<IProductHistoryService>();
+            var badWordsMock = Mock.Of<IProductBadWordsService>();
 
-            _context = new ProductDbContext(options);
-            _context.Database.EnsureDeleted();
-            _context.Database.EnsureCreated();
-
-            var repoMock = new Mock<IProductRepository>().Object;
-            var historyMock = new Mock<IProductHistoryService>().Object;
-            var badWordsMock = new Mock<IProductBadWordsService>().Object;
-
-            _productService = new ProductService(repoMock, historyMock, badWordsMock);
+            _productService = new ProductService(repo, historyMock, badWordsMock);
             _controller = new ProductsController(_productService);
             SeedDatabase();
         }
 
+        private static ProductDbContext CreateInMemoryDbContext()
+        {
+            var options = new DbContextOptionsBuilder<ProductDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            return new ProductDbContext(options);
+        }
+
         private void SeedDatabase()
         {
-            _context.Products.AddRange(
-                new Product { Id = 1, Name = "Product 1", Price = 10, Quantity = 5 },
-                new Product { Id = 2, Name = "Product 2", Price = 20, Quantity = 10 }
-                );
+            _context.Products.AddRange(new List<Product>
+            {
+                new() { Id = 1, Name = "Product 1", Price = 10, Quantity = 5 },
+                new() { Id = 2, Name = "Product 2", Price = 20, Quantity = 10 }
+            });
             _context.SaveChanges();
         }
 
         [Test]
         public async Task GetAllProducts_ShouldReturnAllProducts()
         {
+            var expectedCount = await _context.Products.CountAsync();
+
             var result = await _controller.GetAll() as OkObjectResult;
+            var products = result?.Value as IEnumerable<Product>;
 
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.StatusCode, Is.EqualTo(200));
-
-            var products = result.Value as IEnumerable<Product>; //as List<Product>;
-            Assert.That(products, Is.Not.Null);
-            Assert.That(products.Count(), Is.EqualTo(2));
+            result.Should().NotBeNull();
+            result!.StatusCode.Should().Be(200);
+            products.Should().NotBeNull();
+            products!.Count().Should().Be(expectedCount);
         }
 
         [Test]
         public async Task GetById_ShouldReturnProduct()
         {
+            var expectedProduct = await _context.Products.FindAsync(1);
+
             var result = await _controller.GetById(1) as OkObjectResult;
+            var product = result?.Value as Product;
 
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.StatusCode, Is.EqualTo(200));
-
-            var product = result.Value as Product;
-
-            Assert.That(product, Is.Not.Null);
-            Assert.That(product.Id, Is.EqualTo(1));
-            Assert.That(product.Name, Is.EqualTo("Product 1"));
+            result.Should().NotBeNull();
+            result!.StatusCode.Should().Be(200);
+            product.Should().NotBeNull();
+            product!.Id.Should().Be(expectedProduct!.Id);
+            product.Name.Should().Be(expectedProduct.Name);
         }
 
         [Test]
@@ -81,47 +90,48 @@ namespace ProductManagement.Test
             var product = new Product { Name = "Product 3", Price = 30, Quantity = 15 };
 
             var result = await _controller.Create(product) as CreatedAtActionResult;
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.StatusCode, Is.EqualTo(201));
+            var createdProduct = result?.Value as Product;
 
-            var createdProduct = result.Value as Product;
-            Assert.That(createdProduct, Is.Not.Null);
-            Assert.That(createdProduct.Id, Is.GreaterThan(0));
-            Assert.That(createdProduct.Name, Is.EqualTo("Product 3"));
+            result.Should().NotBeNull();
+            result!.StatusCode.Should().Be(201);
+            createdProduct.Should().NotBeNull();
+            createdProduct!.Id.Should().BeGreaterThan(0);
+            createdProduct.Name.Should().Be(product.Name);
         }
 
         [Test]
         public async Task Update_ShouldUpdateProduct()
         {
-            var product = new Product { Id = 1, Name = "Product 1 Updated", Price = 15, Quantity = 10 };
+            var updatedProduct = new Product { Id = 1, Name = "Product 1 Updated", Price = 15, Quantity = 10 };
 
-            var result = await _controller.Update(1, product) as NoContentResult;
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.StatusCode, Is.EqualTo(204));
+            var result = await _controller.Update(1, updatedProduct) as NoContentResult;
 
-            var updatedProduct = await _context.Products.FindAsync(1);
-            Assert.That(updatedProduct, Is.Not.Null);
-            Assert.That(updatedProduct.Name, Is.EqualTo("Product 1 Updated"));
+            result.Should().NotBeNull();
+            result!.StatusCode.Should().Be(204);
+
+            var productInDb = await _context.Products.FindAsync(1);
+            productInDb.Should().NotBeNull();
+            productInDb!.Name.Should().Be(updatedProduct.Name);
+            productInDb.Price.Should().Be(updatedProduct.Price);
+            productInDb.Quantity.Should().Be(updatedProduct.Quantity);
         }
 
         [Test]
         public async Task Delete_ShouldDeleteProduct()
         {
-            var result = await _controller.Delete(1) as NoContentResult;
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.StatusCode, Is.EqualTo(204));
+            (await _context.Products.FindAsync(1)).Should().NotBeNull();
 
-            var deletedProduct = await _context.Products.FindAsync(1);
-            Assert.That(deletedProduct, Is.Null);
+            var result = await _controller.Delete(1) as NoContentResult;
+
+            result.Should().NotBeNull();
+            result!.StatusCode.Should().Be(204);
+            (await _context.Products.FindAsync(1)).Should().BeNull();
         }
 
-  
         [TearDown]
         public void Dispose()
         {
-         _context.Dispose();
+            _context.Dispose();
         }
-        
     }
-
 }
