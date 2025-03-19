@@ -1,5 +1,7 @@
-﻿using ProductManagement.Application.Interfaces;
+﻿using ProductManagement.Application.DTOs;
+using ProductManagement.Application.Interfaces;
 using ProductManagement.Domain.Entities;
+using ProductManagement.Domain.Enums;
 using ProductManagement.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -26,11 +28,15 @@ namespace ProductManagement.Application.Services
 
         public async Task<Product?> GetProductByIdAsync(int id) => await _repository.GetByIdAsync(id);
 
-        public async Task AddProductAsync(Product product)
+        public async Task AddProductAsync(ProductDto productDto)
         {
-            if (await _productBadWordsService.ContainsBadWordsAsync(product.Name))
-                throw new Exception("Product name contains bad words");
-            
+            if (await _productBadWordsService.ContainsBadWordsAsync(productDto.Name))
+                throw new Exception("Nazwa produktu zawiera złe słowa");
+
+            if (await _repository.ExistsByNameAsync(productDto.Name))
+                throw new Exception("Produkt o podanej nazwie już istnieje");
+
+            var product = new Product(productDto.Name, productDto.Category, productDto.Price, productDto.Quantity);
             await _repository.AddAsync(product);
         }
 
@@ -45,6 +51,7 @@ namespace ProductManagement.Application.Services
             existingProduct.Name = product.Name;
             existingProduct.Price = product.Price;
             existingProduct.Quantity = product.Quantity;
+            existingProduct.Category = product.Category;
 
             await _repository.UpdateAsync(existingProduct);
         }

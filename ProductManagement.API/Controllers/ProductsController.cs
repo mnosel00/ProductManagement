@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using ProductManagement.Application.DTOs;
 using ProductManagement.Application.Interfaces;
 using ProductManagement.Domain.Entities;
+using ProductManagement.Domain.Enums;
 using System.Runtime.InteropServices;
 
 namespace ProductManagement.API.Controllers
@@ -28,10 +30,19 @@ namespace ProductManagement.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Product product)
+        public async Task<IActionResult> Create([FromBody] ProductDto productDto)
         {
-            await _productService.AddProductAsync(product);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            try
+            {
+                var product = new Product(productDto.Name, productDto.Category, productDto.Price, productDto.Quantity);
+
+                await _productService.AddProductAsync(productDto);
+                return CreatedAtAction(nameof(GetById), new { id = product.Id }, productDto);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
@@ -48,6 +59,5 @@ namespace ProductManagement.API.Controllers
             await _productService.DeleteProductAsync(id);
             return NoContent();
         }
-
     }
 }

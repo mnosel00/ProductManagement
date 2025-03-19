@@ -22,6 +22,11 @@ namespace ProductManagement.Infrastructure.Data
                 .Property(p => p.Id)
                 .ValueGeneratedOnAdd();
 
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Category)
+                .HasConversion<string>()
+                .IsRequired();
+
             modelBuilder.Entity<ProductHistory>()
                 .HasKey(ph => ph.Id);
 

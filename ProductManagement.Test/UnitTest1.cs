@@ -14,6 +14,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ProductManagement.Application.DTOs;
+using ProductManagement.Domain.Enums;
 
 namespace ProductManagement.Test
 {
@@ -49,8 +51,8 @@ namespace ProductManagement.Test
         {
             _context.Products.AddRange(new List<Product>
             {
-                new() { Id = 1, Name = "Product 1", Price = 10, Quantity = 5 },
-                new() { Id = 2, Name = "Product 2", Price = 20, Quantity = 10 }
+                new Product("Product 1", ProductCategory.Electronics, 10, 5) { Id = 1 },
+                new Product("Product 2", ProductCategory.Books, 20, 10) { Id = 2 }
             });
             _context.SaveChanges();
         }
@@ -87,22 +89,21 @@ namespace ProductManagement.Test
         [Test]
         public async Task Create_ShouldCreateProduct()
         {
-            var product = new Product { Name = "Product 3", Price = 30, Quantity = 15 };
+            var productDto = new ProductDto { Name = "Product 3", Category = ProductCategory.Clothes, Price = 30, Quantity = 15 };
 
-            var result = await _controller.Create(product) as CreatedAtActionResult;
-            var createdProduct = result?.Value as Product;
+            var result = await _controller.Create(productDto) as CreatedAtActionResult;
+            var createdProduct = result?.Value as ProductDto;
 
             result.Should().NotBeNull();
             result!.StatusCode.Should().Be(201);
             createdProduct.Should().NotBeNull();
-            createdProduct!.Id.Should().BeGreaterThan(0);
-            createdProduct.Name.Should().Be(product.Name);
+            createdProduct!.Name.Should().Be(productDto.Name);
         }
 
         [Test]
         public async Task Update_ShouldUpdateProduct()
         {
-            var updatedProduct = new Product { Id = 1, Name = "Product 1 Updated", Price = 15, Quantity = 10 };
+            var updatedProduct = new Product("Product 1 Updated", ProductCategory.Electronics, 15, 10) { Id = 1 };
 
             var result = await _controller.Update(1, updatedProduct) as NoContentResult;
 
@@ -135,3 +136,4 @@ namespace ProductManagement.Test
         }
     }
 }
+

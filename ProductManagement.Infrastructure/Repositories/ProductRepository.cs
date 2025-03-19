@@ -18,6 +18,12 @@ namespace ProductManagement.Infrastructure.Repositories
                 _context = context;
         }
 
+        public async Task<bool> ExistsByNameAsync(string name)
+        {
+            return await _context.Products.AnyAsync(p => p.Name == name);
+        }
+
+
         public async Task AddAsync(Product product)
         {
             _context.Products.Add(product);
